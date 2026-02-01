@@ -78,7 +78,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                           dishId,
                           type: 'meal',
                           dishName: dish.name,
-                          dishColor: dish.color
+                          dishColor: dish.color || 'orange'
                         });
                       }
                     }
@@ -138,7 +138,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                           dishId,
                           type: 'meal',
                           dishName: dish.name,
-                          dishColor: dish.color
+                          dishColor: dish.color || 'orange'
                         });
                       }
                     }
