@@ -54,25 +54,26 @@ function AppContent() {
     <div className="min-h-screen bg-[#E8DCC8]">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-<header className="bg-[#E8DCC8] py-6 px-8">
-  <div className="flex justify-between items-start">
+<header className="bg-[#E8DCC8] py-4 md:py-6 px-4 md:px-8">
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-start gap-4">
     <div>
-      <h1 className="text-4xl font-bold">
+      <h1 className="text-2xl md:text-4xl font-bold">
         <span className="text-gray-800">Morgane's </span>
         <span className="text-[#CD5C08]">Super Planner</span>
       </h1>
-      <p className="text-gray-600 mt-1 text-lg">
+      <p className="text-gray-600 mt-1 text-base md:text-lg">
         C'est l'heure de bien manger ! 🥕
       </p>
     </div>
     
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
       <button 
         onClick={() => setIsModalOpen(true)}
-        className="bg-[#6C4E31] hover:bg-[#8B6F47] text-white px-6 py-3 rounded-lg font-medium shadow-md transition-colors flex items-center gap-2"
+        className="bg-[#6C4E31] hover:bg-[#8B6F47] text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium shadow-md transition-colors flex items-center gap-2 flex-1 md:flex-none justify-center"
       >
         <span className="text-xl">🍳</span>
-        Cuisiner un plat
+        <span className="hidden sm:inline">Cuisiner un plat</span>
+        <span className="sm:hidden">Cuisiner</span>
       </button>
       
       <button className="text-gray-600 hover:underline text-sm">
@@ -81,6 +82,7 @@ function AppContent() {
     </div>
   </div>
 </header>
+
 
         {/* CONTENU PRINCIPAL */}
         <main>
