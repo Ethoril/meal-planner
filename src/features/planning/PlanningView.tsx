@@ -5,11 +5,17 @@ import { startOfWeek, addDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { FridgePanel } from '../dishes/FridgePanel';
 import { WeekGrid } from './WeekGrid';
+import { BottomDrawer } from '../../components/ui/BottomDrawer';
+import { useStore } from '../../store/useStore';
+import { getDishColors } from '../../types/schema';
+
 
 export function PlanningView() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const dishes = useStore((state) => state.dishes);
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart(addDays(currentWeekStart, -7));
@@ -25,27 +31,27 @@ export function PlanningView() {
   return (
     <>
       {/* BARRE DE NAVIGATION MOIS */}
-      <div className="bg-white mx-8 mt-6 mb-6 px-6 py-4 rounded-xl shadow-sm">
+      <div className="bg-white mx-4 md:mx-8 mt-4 md:mt-6 mb-4 md:mb-6 px-4 md:px-6 py-3 md:py-4 rounded-xl shadow-sm">
         <div className="flex justify-between items-center">
           <button
             onClick={goToPreviousWeek}
-            className="text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            className="text-gray-600 hover:text-gray-800 font-medium transition-colors text-sm md:text-base"
           >
             ← Précédent
           </button>
           
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-800 capitalize">
+            <div className="text-lg md:text-2xl font-bold text-gray-800 capitalize">
               {format(currentWeekStart, 'MMMM yyyy', { locale: fr })}
             </div>
-            <div className="text-sm text-[#CD5C08] font-bold mt-1">
+            <div className="text-xs md:text-sm text-[#CD5C08] font-bold mt-1">
               AUJOURD'HUI
             </div>
           </div>
           
           <button
             onClick={goToNextWeek}
-            className="text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            className="text-gray-600 hover:text-gray-800 font-medium transition-colors text-sm md:text-base"
           >
             Suivant →
           </button>
@@ -53,29 +59,57 @@ export function PlanningView() {
       </div>
 
       {/* CONTENU */}
-      <div className="flex px-8 pb-8 gap-6">
-        <FridgePanel />
+      <div className="flex px-4 md:px-8 pb-8 md:pb-8 gap-6">
+        {/* Frigo Desktop uniquement */}
+        <div className="hidden md:block">
+          <FridgePanel />
+        </div>
         
-        <div className="flex-1 space-y-8">
+        <div className="flex-1 space-y-6 md:space-y-8">
           {/* Semaine 1 */}
           <div>
-            <div className="text-left mb-4 text-lg font-semibold text-gray-800">
+            <div className="text-left mb-3 md:mb-4 text-base md:text-lg font-semibold text-gray-800">
               Semaine du {format(currentWeekStart, 'd MMMM yyyy', { locale: fr })}
             </div>
             <WeekGrid weekDays={week1Days} />
           </div>
 
-          {/* Espacement de 32px */}
-          <div style={{ height: '32px' }} />
+          {/* Espacement */}
+          <div className="h-4 md:h-8" />
 
           {/* Semaine 2 */}
           <div>
-            <div className="text-left mb-4 text-lg font-semibold text-gray-800">
+            <div className="text-left mb-3 md:mb-4 text-base md:text-lg font-semibold text-gray-800">
               Semaine du {format(addDays(currentWeekStart, 7), 'd MMMM yyyy', { locale: fr })}
             </div>
             <WeekGrid weekDays={week2Days} />
           </div>
+          
+          {/* Espace pour le drawer mobile */}
+          <div className="h-20 md:hidden" />
         </div>
+      </div>
+
+      {/* Frigo Mobile en tiroir */}
+      <div className="md:hidden">
+        <BottomDrawer isOpen={isDrawerOpen} onToggle={() => setIsDrawerOpen(!isDrawerOpen)}>
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">Mes plats</h3>
+            {dishes.map((dish) => {
+              const colors = getDishColors(dish);
+              return (
+                <div
+                  key={dish.id}
+                  className="p-4 rounded-lg text-white font-semibold flex items-center justify-between"
+                  style={{ backgroundColor: colors.bg }}
+                >
+                  <span>{dish.name}</span>
+                  <span className="text-sm opacity-90">Stock: {dish.quantity}</span>
+                </div>
+              );
+            })}
+          </div>
+        </BottomDrawer>
       </div>
     </>
   );

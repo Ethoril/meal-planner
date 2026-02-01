@@ -1,12 +1,19 @@
 // src/features/planning/WeekGrid.tsx
 
+import { useState } from 'react';
 import { format, isToday, isBefore, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useStore } from '../../store/useStore';
-import { getDishColors, DishColorBase } from '../../types/schema';
+import { getDishColors, DishColorBase, Dish } from '../../types/schema';
+import { DishSelector } from '../../components/ui/DishSelector';
 
 interface WeekGridProps {
   weekDays: Date[];
+}
+
+interface SlotSelection {
+  date: string;
+  meal: 'lunch' | 'dinner';
 }
 
 export function WeekGrid({ weekDays }: WeekGridProps) {
@@ -14,8 +21,29 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
   const dishes = useStore((state) => state.dishes);
   const removeSlot = useStore((state) => state.removeSlot);
   const addSlot = useStore((state) => state.addSlot);
+  const [selectedSlot, setSelectedSlot] = useState<SlotSelection | null>(null);
   
   const today = startOfDay(new Date());
+
+  const handleSlotClick = (date: string, meal: 'lunch' | 'dinner', isPast: boolean) => {
+    if (isPast) return;
+    setSelectedSlot({ date, meal });
+  };
+
+  const handleDishSelect = (dish: Dish) => {
+    if (!selectedSlot) return;
+    
+    addSlot({
+      date: selectedSlot.date,
+      meal: selectedSlot.meal,
+      dishId: dish.id,
+      type: 'meal',
+      dishName: dish.name,
+      dishColor: dish.color || 'orange'
+    });
+    
+    setSelectedSlot(null);
+  };
 
   return (
     <>
@@ -185,8 +213,8 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
         })}
       </div>
 
-      {/* Vue Mobile (affichée uniquement sur mobile) */}
-      <div className="md:hidden space-y-4 px-4">
+      {/* Vue Mobile (affichée uniquement sur mobile) - 2 jours par ligne */}
+      <div className="md:hidden grid grid-cols-2 gap-3">
         {weekDays.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const isPast = isBefore(day, today);
@@ -205,7 +233,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
             >
               {/* HEADER DU JOUR */}
               <div
-                className={`py-3 px-4 ${
+                className={`py-2 px-3 ${
                   isCurrentDay 
                     ? 'bg-[#C1440E] text-white' 
                     : isPast 
@@ -213,52 +241,27 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                     : 'bg-gray-200 text-gray-700'
                 }`}
               >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-sm font-semibold uppercase">
-                      {format(day, 'EEEE', { locale: fr })}
-                    </div>
-                    <div className="text-xs opacity-80">
-                      {format(day, 'd MMMM yyyy', { locale: fr })}
-                    </div>
-                  </div>
-                  <div className="text-4xl font-bold">
-                    {format(day, 'd')}
-                  </div>
+                <div className="text-xs font-semibold uppercase text-center">
+                  {format(day, 'EEE', { locale: fr })}
+                </div>
+                <div className="text-2xl font-bold text-center">
+                  {format(day, 'd')}
                 </div>
               </div>
 
               {/* REPAS */}
-              <div className={`p-4 space-y-4 ${isPast ? 'bg-gray-100' : 'bg-white'}`}>
+              <div className={`p-3 space-y-3 ${isPast ? 'bg-gray-100' : 'bg-white'}`}>
                 {/* MIDI */}
                 <div>
-                  <div className="text-sm text-gray-500 font-semibold mb-2">🍽️ MIDI</div>
+                  <div className="text-xs text-gray-500 font-semibold mb-1.5">🍽️ MIDI</div>
                   <div
-                    className="relative rounded-lg overflow-hidden"
-                    style={{ height: '80px' }}
-                    onDragOver={(e) => !isPast && e.preventDefault()}
-                    onDrop={(e) => {
-                      if (isPast) return;
-                      e.preventDefault();
-                      const dishId = e.dataTransfer.getData('dishId');
-                      if (dishId) {
-                        const dish = dishes.find(d => d.id === dishId);
-                        if (dish) {
-                          addSlot({
-                            date: dateStr,
-                            meal: 'lunch',
-                            dishId,
-                            type: 'meal',
-                            dishName: dish.name,
-                            dishColor: dish.color || 'orange'
-                          });
-                        }
-                      }
-                    }}
+                    className="relative rounded-lg overflow-hidden cursor-pointer"
+                    style={{ height: '60px' }}
+                    onClick={() => !lunchSlot && handleSlotClick(dateStr, 'lunch', isPast)}
                   >
                     {lunchSlot ? (
                       <div
-                        className="w-full h-full flex items-center justify-between px-4 text-white font-bold relative"
+                        className="w-full h-full flex items-center justify-between px-3 text-white font-bold text-sm relative"
                         style={{ 
                           backgroundColor: lunchDish 
                             ? getDishColors(lunchDish).bg 
@@ -272,21 +275,24 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                               }).bg
                         }}
                       >
-                        <span className="text-lg">
+                        <span className="flex-1 truncate">
                           {lunchDish?.name || lunchSlot.dishName || 'Plat supprimé'}
                         </span>
                         <button
-                          onClick={() => removeSlot(lunchSlot.id)}
-                          className="text-white/90 hover:text-white text-3xl leading-none"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSlot(lunchSlot.id);
+                          }}
+                          className="text-white/90 hover:text-white text-2xl leading-none ml-2"
                         >
                           ×
                         </button>
                       </div>
                     ) : (
-                      <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-sm ${
-                        isPast ? 'border-gray-300 bg-gray-50' : 'border-gray-300'
+                      <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-xs ${
+                        isPast ? 'border-gray-300 bg-gray-50' : 'border-gray-300 active:bg-gray-50'
                       }`}>
-                        Vide
+                        {isPast ? 'Vide' : 'Ajouter'}
                       </div>
                     )}
                   </div>
@@ -294,33 +300,15 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
 
                 {/* SOIR */}
                 <div>
-                  <div className="text-sm text-gray-500 font-semibold mb-2">🌙 SOIR</div>
+                  <div className="text-xs text-gray-500 font-semibold mb-1.5">🌙 SOIR</div>
                   <div
-                    className="relative rounded-lg overflow-hidden"
-                    style={{ height: '80px' }}
-                    onDragOver={(e) => !isPast && e.preventDefault()}
-                    onDrop={(e) => {
-                      if (isPast) return;
-                      e.preventDefault();
-                      const dishId = e.dataTransfer.getData('dishId');
-                      if (dishId) {
-                        const dish = dishes.find(d => d.id === dishId);
-                        if (dish) {
-                          addSlot({
-                            date: dateStr,
-                            meal: 'dinner',
-                            dishId,
-                            type: 'meal',
-                            dishName: dish.name,
-                            dishColor: dish.color || 'orange'
-                          });
-                        }
-                      }
-                    }}
+                    className="relative rounded-lg overflow-hidden cursor-pointer"
+                    style={{ height: '60px' }}
+                    onClick={() => !dinnerSlot && handleSlotClick(dateStr, 'dinner', isPast)}
                   >
                     {dinnerSlot ? (
                       <div
-                        className="w-full h-full flex items-center justify-between px-4 text-white font-bold relative"
+                        className="w-full h-full flex items-center justify-between px-3 text-white font-bold text-sm relative"
                         style={{ 
                           backgroundColor: dinnerDish 
                             ? getDishColors(dinnerDish).bg 
@@ -334,21 +322,24 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                               }).bg
                         }}
                       >
-                        <span className="text-lg">
+                        <span className="flex-1 truncate">
                           {dinnerDish?.name || dinnerSlot.dishName || 'Plat supprimé'}
                         </span>
                         <button
-                          onClick={() => removeSlot(dinnerSlot.id)}
-                          className="text-white/90 hover:text-white text-3xl leading-none"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSlot(dinnerSlot.id);
+                          }}
+                          className="text-white/90 hover:text-white text-2xl leading-none ml-2"
                         >
                           ×
                         </button>
                       </div>
                     ) : (
-                      <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-sm ${
-                        isPast ? 'border-gray-300 bg-gray-50' : 'border-gray-300'
+                      <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-xs ${
+                        isPast ? 'border-gray-300 bg-gray-50' : 'border-gray-300 active:bg-gray-50'
                       }`}>
-                        Vide
+                        {isPast ? 'Vide' : 'Ajouter'}
                       </div>
                     )}
                   </div>
@@ -358,6 +349,15 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
           );
         })}
       </div>
+
+      {/* Sélecteur de plat pour mobile */}
+      {selectedSlot && (
+        <DishSelector
+          dishes={dishes}
+          onSelect={handleDishSelect}
+          onCancel={() => setSelectedSlot(null)}
+        />
+      )}
     </>
   );
 }
