@@ -2,10 +2,13 @@
 
 import { create } from 'zustand';
 import { Dish, MealSlot } from '../types/schema';
+import { saveDish, removeDish as firebaseRemoveDish, saveSlot, removeSlot as firebaseRemoveSlot } from '../utils/firebase-helpers';
 
 interface StoreState {
   dishes: Dish[];
   slots: MealSlot[];
+  userId: string | null;
+  setUserId: (userId: string | null) => void;
   setDishes: (dishes: Dish[]) => void;
   setSlots: (slots: MealSlot[]) => void;
   addDish: (dish: Dish) => void;
@@ -16,38 +19,54 @@ interface StoreState {
   removeSlot: (id: string) => void;
 }
 
-export const useStore = create<StoreState>((set) => ({
+export const useStore = create<StoreState>((set, get) => ({
   dishes: [],
   slots: [],
+  userId: null,
   
+  setUserId: (userId) => set({ userId }),
   setDishes: (dishes) => set({ dishes }),
   setSlots: (slots) => set({ slots }),
   
-  addDish: (dish) => set((state) => ({ 
-    dishes: [...state.dishes, dish] 
-  })),
+  addDish: (dish) => {
+    set((state) => ({ dishes: [...state.dishes, dish] }));
+    const { userId } = get();
+    if (userId) saveDish(userId, dish);
+  },
   
-  updateDish: (id, updates) => set((state) => ({
-    dishes: state.dishes.map(d => d.id === id ? { ...d, ...updates } : d)
-  })),
+  updateDish: (id, updates) => {
+    set((state) => ({
+      dishes: state.dishes.map(d => d.id === id ? { ...d, ...updates } : d)
+    }));
+    const { userId, dishes } = get();
+    const updatedDish = dishes.find(d => d.id === id);
+    if (userId && updatedDish) saveDish(userId, updatedDish);
+  },
   
-deleteDish: (id) => set((state) => ({
-  dishes: state.dishes.filter(d => d.id !== id)
-  // On ne touche PAS aux slots !
-})),
-
+  deleteDish: (id) => {
+    set((state) => ({
+      dishes: state.dishes.filter(d => d.id !== id)
+    }));
+    const { userId } = get();
+    if (userId) firebaseRemoveDish(userId, id);
+  },
   
-  restockDish: (id) => set((state) => ({
-    dishes: state.dishes.map(d => 
-      d.id === id ? { ...d, quantity: d.defaultYield } : d
-    )
-  })),
+  restockDish: (id) => {
+    set((state) => ({
+      dishes: state.dishes.map(d => 
+        d.id === id ? { ...d, quantity: d.defaultYield } : d
+      )
+    }));
+    const { userId, dishes } = get();
+    const updatedDish = dishes.find(d => d.id === id);
+    if (userId && updatedDish) saveDish(userId, updatedDish);
+  },
   
-  addSlot: (newSlot) => set((state) => {
+  addSlot: (newSlot) => {
+    const state = get();
     const dish = state.dishes.find(d => d.id === newSlot.dishId);
-    if (!dish || dish.quantity <= 0) return state;
+    if (!dish || dish.quantity <= 0) return;
 
-    // Vérifier s'il y a déjà un plat à ce créneau
     const existingSlot = state.slots.find(
       s => s.date === newSlot.date && s.meal === newSlot.meal
     );
@@ -55,55 +74,78 @@ deleteDish: (id) => set((state) => ({
     let nextDishes = [...state.dishes];
     let nextSlots = [...state.slots];
 
-    // Si un plat existe déjà, le remettre en stock
     if (existingSlot) {
       nextDishes = nextDishes.map(d =>
         d.id === existingSlot.dishId ? { ...d, quantity: d.quantity + 1 } : d
       );
       nextSlots = nextSlots.filter(s => s.id !== existingSlot.id);
+      
+      // Sync Firebase
+      if (state.userId) {
+        const restoredDish = nextDishes.find(d => d.id === existingSlot.dishId);
+        if (restoredDish) saveDish(state.userId, restoredDish);
+        firebaseRemoveSlot(state.userId, existingSlot.id);
+      }
     }
 
-    // Retirer 1 du stock du nouveau plat
     nextDishes = nextDishes.map(d =>
       d.id === newSlot.dishId ? { ...d, quantity: d.quantity - 1 } : d
     );
 
-    // Ajouter le nouveau slot
-    nextSlots = [...nextSlots, { ...newSlot, id: crypto.randomUUID() }];
+    const slotWithId = { ...newSlot, id: crypto.randomUUID() };
+    nextSlots = [...nextSlots, slotWithId];
 
-    return { dishes: nextDishes, slots: nextSlots };
-  }),
-  
-removeSlot: (id) => set((state) => {
-  const slotToRemove = state.slots.find(s => s.id === id);
-  if (!slotToRemove) return state;
-
-  const existingDish = state.dishes.find(d => d.id === slotToRemove.dishId);
-
-  if (existingDish) {
-    // Le plat existe encore, on remet juste la part en stock
-    return {
-      slots: state.slots.filter(s => s.id !== id),
-      dishes: state.dishes.map(d =>
-        d.id === slotToRemove.dishId ? { ...d, quantity: d.quantity + 1 } : d
-      )
-    };
-  } else {
-    // Le plat n'existe plus, on le recrée avec 1 part
-    const recreatedDish = {
-      id: slotToRemove.dishId,
-      name: slotToRemove.dishName,
-      color: slotToRemove.dishColor,
-      quantity: 1,
-      defaultYield: 1,
-      tags: []
-    };
+    set({ dishes: nextDishes, slots: nextSlots });
     
-    return {
-      slots: state.slots.filter(s => s.id !== id),
-      dishes: [...state.dishes, recreatedDish]
-    };
-  }
-}),
+    // Sync Firebase
+    if (state.userId) {
+      const updatedDish = nextDishes.find(d => d.id === newSlot.dishId);
+      if (updatedDish) saveDish(state.userId, updatedDish);
+      saveSlot(state.userId, slotWithId);
+    }
+  },
+  
+  removeSlot: (id) => {
+    const state = get();
+    const slotToRemove = state.slots.find(s => s.id === id);
+    if (!slotToRemove) return;
 
+    const existingDish = state.dishes.find(d => d.id === slotToRemove.dishId);
+
+    if (existingDish) {
+      const updatedDish = { ...existingDish, quantity: existingDish.quantity + 1 };
+      set({
+        slots: state.slots.filter(s => s.id !== id),
+        dishes: state.dishes.map(d =>
+          d.id === slotToRemove.dishId ? updatedDish : d
+        )
+      });
+      
+      // Sync Firebase
+      if (state.userId) {
+        saveDish(state.userId, updatedDish);
+        firebaseRemoveSlot(state.userId, id);
+      }
+    } else {
+      const recreatedDish = {
+        id: slotToRemove.dishId,
+        name: slotToRemove.dishName,
+        color: slotToRemove.dishColor,
+        quantity: 1,
+        defaultYield: 1,
+        tags: []
+      };
+      
+      set({
+        slots: state.slots.filter(s => s.id !== id),
+        dishes: [...state.dishes, recreatedDish]
+      });
+      
+      // Sync Firebase
+      if (state.userId) {
+        saveDish(state.userId, recreatedDish);
+        firebaseRemoveSlot(state.userId, id);
+      }
+    }
+  },
 }));
