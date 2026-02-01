@@ -90,27 +90,51 @@ export function PlanningView() {
         </div>
       </div>
 
-      {/* Frigo Mobile en tiroir */}
-      <div className="md:hidden">
-        <BottomDrawer isOpen={isDrawerOpen} onToggle={() => setIsDrawerOpen(!isDrawerOpen)}>
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Mes plats</h3>
-            {dishes.map((dish) => {
-              const colors = getDishColors(dish);
-              return (
-                <div
-                  key={dish.id}
-                  className="p-4 rounded-lg text-white font-semibold flex items-center justify-between"
-                  style={{ backgroundColor: colors.bg }}
-                >
-                  <span>{dish.name}</span>
-                  <span className="text-sm opacity-90">Stock: {dish.quantity}</span>
-                </div>
-              );
-            })}
+{/* Frigo Mobile en tiroir */}
+<div className="md:hidden">
+  <BottomDrawer isOpen={isDrawerOpen} onToggle={() => setIsDrawerOpen(!isDrawerOpen)}>
+    <div className="space-y-3">
+      <h3 className="text-lg font-bold text-gray-800 mb-3">Mes plats</h3>
+      {dishes.map((dish) => {
+        const colors = getDishColors(dish);
+        return (
+          <div
+            key={dish.id}
+            className="p-3 rounded-lg text-white font-semibold"
+            style={{ backgroundColor: colors.bg }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex-1">{dish.name}</span>
+              <span className="text-sm opacity-90">Stock: {dish.quantity}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  // TODO: Ouvrir modal d'édition
+                  console.log('Éditer', dish);
+                }}
+                className="flex-1 bg-white/20 hover:bg-white/30 py-2 px-3 rounded text-sm font-medium transition-colors"
+              >
+                ✏️ Éditer
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Supprimer "${dish.name}" ?`)) {
+                    useStore.getState().deleteDish(dish.id);
+                  }
+                }}
+                className="flex-1 bg-white/20 hover:bg-white/30 py-2 px-3 rounded text-sm font-medium transition-colors"
+              >
+                🗑️ Supprimer
+              </button>
+            </div>
           </div>
-        </BottomDrawer>
-      </div>
+        );
+      })}
+    </div>
+  </BottomDrawer>
+</div>
+
     </>
   );
 }
