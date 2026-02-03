@@ -14,7 +14,6 @@ interface StoreState {
   addDish: (dish: Dish) => void;
   updateDish: (id: string, updates: Partial<Dish>) => void;
   deleteDish: (id: string) => void;
-  restockDish: (id: string) => void;
   addSlot: (slot: Omit<MealSlot, 'id'>) => void;
   removeSlot: (id: string) => void;
 }
@@ -61,16 +60,6 @@ updateDish: (id, updates) => {
     if (userId) firebaseRemoveDish(userId, id);
   },
   
-  restockDish: (id) => {
-    set((state) => ({
-      dishes: state.dishes.map(d => 
-        d.id === id ? { ...d, quantity: d.defaultYield } : d
-      )
-    }));
-    const { userId, dishes } = get();
-    const updatedDish = dishes.find(d => d.id === id);
-    if (userId && updatedDish) saveDish(userId, updatedDish);
-  },
   
   addSlot: (newSlot) => {
     const state = get();

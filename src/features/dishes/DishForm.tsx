@@ -13,7 +13,7 @@ interface DishFormProps {
 
 export function DishForm({ dish, onSave, onCancel }: DishFormProps) {
   const [name, setName] = useState(dish?.name || '');
-  const [defaultYield, setDefaultYield] = useState(dish?.defaultYield || 1);
+  const [quantity, setQuantity] = useState(dish?.quantity || 1);
   const [color, setColor] = useState<DishColorBase>(dish?.color || 'orange');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,8 +22,7 @@ export function DishForm({ dish, onSave, onCancel }: DishFormProps) {
     const newDish: Dish = {
       id: dish?.id || crypto.randomUUID(),
       name: name.trim(),
-      defaultYield,
-      quantity: dish?.quantity ?? defaultYield, // Si édition, garde le stock actuel
+      quantity,
       tags: [],
       color,
     };
@@ -45,8 +44,8 @@ export function DishForm({ dish, onSave, onCancel }: DishFormProps) {
         label="Nombre de parts"
         type="number"
         min="1"
-        value={defaultYield}
-        onChange={(e) => setDefaultYield(Number(e.target.value))}
+        value={quantity}
+        onChange={(e) => setQuantity(Number(e.target.value))}
         required
       />
       

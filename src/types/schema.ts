@@ -6,7 +6,6 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export interface Dish {
   id: DishId;
   name: string;
-  defaultYield: number;
   quantity: number;
   tags: string[];
   color?: DishColorBase;

@@ -16,18 +16,33 @@ function AppContent() {
   const { setDishes, setSlots, addDish, setUserId } = useStore(); // ← Ajout de setUserId
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+useEffect(() => {
+  if (!user) return;
 
-    setUserId(user.uid); // ← Nouvelle ligne : enregistre le userId dans le store
-    const unsubDishes = syncDishes(user.uid, setDishes);
-    const unsubSlots = syncSlots(user.uid, setSlots);
+  setUserId(user.uid);
+  
+  // Sync dishes avec migration automatique
+  const unsubDishes = syncDishes(user.uid, (dishes) => {
+    // Migration : convertir les anciens plats qui ont defaultYield
+    const migratedDishes = dishes.map(dish => {
+      const { defaultYield, ...rest } = dish as any;
+      return {
+        ...rest,
+        // Si quantity = 0 mais defaultYield existe, utiliser defaultYield
+        quantity: rest.quantity || defaultYield || 1
+      };
+    });
+    setDishes(migratedDishes);
+  });
+  
+  const unsubSlots = syncSlots(user.uid, setSlots);
 
-    return () => {
-      unsubDishes();
-      unsubSlots();
-    };
-  }, [user, setDishes, setSlots, setUserId]); // ← Ajout de setUserId dans les dépendances
+  return () => {
+    unsubDishes();
+    unsubSlots();
+  };
+}, [user, setDishes, setSlots, setUserId]);
+
 
   const handleCreateDish = async (dish: Dish) => {
     console.log('handleCreateDish appelé', dish);

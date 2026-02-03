@@ -10,7 +10,7 @@ import { Modal } from '../../components/ui/Modal';
 
 export function FridgePanel() {
   const { user } = useAuth();
-  const { dishes, deleteDish, restockDish, updateDish } = useStore();
+  const { dishes, deleteDish, updateDish } = useStore(); // ← Enlevé restockDish
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
 
   const handleDelete = async (dishId: string) => {
@@ -19,36 +19,22 @@ export function FridgePanel() {
     await removeDish(user.uid, dishId);
   };
 
-  const handleRestock = async (dishId: string) => {
-    if (!user) return;
-    restockDish(dishId);
-    const dish = dishes.find(d => d.id === dishId);
-    if (dish) {
-      await saveDish(user.uid, { ...dish, quantity: dish.defaultYield });
-    }
-  };
-
   const handleEdit = (dish: Dish) => {
     setEditingDish(dish);
   };
 
-const handleSaveEdit = async (updatedDish: Dish) => {
-  if (!user) return;
-  
-  // Mettre à jour dans le store (qui sync automatiquement avec Firebase)
-  updateDish(updatedDish.id, {
-    name: updatedDish.name,
-    defaultYield: updatedDish.defaultYield,
-    color: updatedDish.color,
-    // On garde la quantity actuelle, pas celle du formulaire
-  });
-  
-  // Double sécurité : sauvegarder directement dans Firebase aussi
-  await saveDish(user.uid, updatedDish);
-  
-  setEditingDish(null);
-};
-
+  const handleSaveEdit = async (updatedDish: Dish) => {
+    if (!user) return;
+    
+    updateDish(updatedDish.id, {
+      name: updatedDish.name,
+      quantity: updatedDish.quantity, // ← Changé de defaultYield à quantity
+      color: updatedDish.color,
+    });
+    
+    await saveDish(user.uid, updatedDish);
+    setEditingDish(null);
+  };
 
   return (
     <>
