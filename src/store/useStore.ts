@@ -34,14 +34,24 @@ export const useStore = create<StoreState>((set, get) => ({
     if (userId) saveDish(userId, dish);
   },
   
-  updateDish: (id, updates) => {
-    set((state) => ({
-      dishes: state.dishes.map(d => d.id === id ? { ...d, ...updates } : d)
-    }));
-    const { userId, dishes } = get();
-    const updatedDish = dishes.find(d => d.id === id);
-    if (userId && updatedDish) saveDish(userId, updatedDish);
-  },
+updateDish: (id, updates) => {
+  const { userId, dishes } = get();
+  const currentDish = dishes.find(d => d.id === id);
+  
+  if (!currentDish) return;
+  
+  // Construire le plat mis à jour AVANT de faire le set
+  const updatedDish = { ...currentDish, ...updates };
+  
+  // Mettre à jour le state
+  set((state) => ({
+    dishes: state.dishes.map(d => d.id === id ? updatedDish : d)
+  }));
+  
+  // Sauvegarder dans Firebase avec le plat complet
+  if (userId) saveDish(userId, updatedDish);
+},
+
   
   deleteDish: (id) => {
     set((state) => ({
