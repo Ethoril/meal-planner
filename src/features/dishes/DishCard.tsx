@@ -37,9 +37,7 @@ export function DishCard({ dish, onEdit, onDelete, onConsume, onRestock }: DishC
         >
           Stock: {dish.quantity}
         </div>
-        <div className="text-white/90 text-sm">
-          (Yield: {dish.defaultYield})
-        </div>
+
       </div>
       
       {dish.tags.length > 0 && (

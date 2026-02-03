@@ -125,7 +125,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                                 name: lunchSlot.dishName, 
                                 color: (lunchSlot.dishColor || 'orange') as DishColorBase,
                                 quantity: 0,
-                                defaultYield: 1,
+                                
                                 tags: []
                               }).bg
                         }}
@@ -185,7 +185,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                                 name: dinnerSlot.dishName, 
                                 color: (dinnerSlot.dishColor || 'orange') as DishColorBase,
                                 quantity: 0,
-                                defaultYield: 1,
+                                
                                 tags: []
                               }).bg
                         }}
@@ -270,7 +270,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                                 name: lunchSlot.dishName, 
                                 color: (lunchSlot.dishColor || 'orange') as DishColorBase,
                                 quantity: 0,
-                                defaultYield: 1,
+                                
                                 tags: []
                               }).bg
                         }}
@@ -317,7 +317,7 @@ export function WeekGrid({ weekDays }: WeekGridProps) {
                                 name: dinnerSlot.dishName, 
                                 color: (dinnerSlot.dishColor || 'orange') as DishColorBase,
                                 quantity: 0,
-                                defaultYield: 1,
+                                
                                 tags: []
                               }).bg
                         }}
