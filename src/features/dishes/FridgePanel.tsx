@@ -32,13 +32,23 @@ export function FridgePanel() {
     setEditingDish(dish);
   };
 
-  const handleSaveEdit = async (updatedDish: Dish) => {
-    if (!user) return;
-    
-    updateDish(updatedDish.id, updatedDish);
-    await saveDish(user.uid, updatedDish);
-    setEditingDish(null);
-  };
+const handleSaveEdit = async (updatedDish: Dish) => {
+  if (!user) return;
+  
+  // Mettre à jour dans le store (qui sync automatiquement avec Firebase)
+  updateDish(updatedDish.id, {
+    name: updatedDish.name,
+    defaultYield: updatedDish.defaultYield,
+    color: updatedDish.color,
+    // On garde la quantity actuelle, pas celle du formulaire
+  });
+  
+  // Double sécurité : sauvegarder directement dans Firebase aussi
+  await saveDish(user.uid, updatedDish);
+  
+  setEditingDish(null);
+};
+
 
   return (
     <>
